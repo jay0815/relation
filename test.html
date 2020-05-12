@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Demo</title>
+  </head>
+  <body>
+    /* 图的画布容器 */
+    <div id="mountNode"></div>
+
+    /* 引入 G6 */
+    <script src="https://gw.alipayobjects.com/os/antv/pkg/_antv.g6-3.4.7/dist/g6.min.js"></script>
+    <script>
+    const set = new Set();
+    const globalProperties = [
+        'eval',
+        'isFinite',
+        'isNaN',
+        'parseFloat',
+        'parseInt',
+        'decodeURI',
+        'decodeURIComponent',
+        'encodeURI',
+        'encodeURIComponent',
+        'Array',
+        'Date',
+        'RegExp',
+        'Promise',
+        'Proxy',
+        'Map',
+        'WeakMap',
+        'Set',
+        'WeakSet',
+        'Function',
+        'Boolean',
+        'String',
+        'Number',
+        'Symbol',
+        'Object',
+        'Error',
+        'EvalError',
+        'RangeError',
+        'ReferenceError',
+        'SyntaxError',
+        'TypeError',
+        'URIError',
+        'ArrayBuffer',
+        'SharedArrayBuffer',
+        'DataView',
+        'Float32Array',
+        'Float64Array',
+        'Int8Array',
+        'Int16Array',
+        'Int32Array',
+        'Uint8Array',
+        'Uint16Array',
+        'Uint32Array',
+        'Uint8ClampedArray',
+        'Atomics',
+        'JSON',
+        'Math',
+        'Reflect'
+      ];
+
+    const quene = [];
+    const data = [];
+    const indexMap = new Map();
+    for(var p of globalProperties){
+      quene.push({
+        path: [p],
+        object: this[p],
+
+      })
+      data.push({
+        source: 0,
+        id: data.length+1,
+        label: p
+      });
+      indexMap.set(
+        p,
+        data.length
+      );
+    };
+
+
+    let current;
+    while (quene.length) {
+      current = quene.shift();
+      if(!set.has(current.object)){
+        set.add(current.object);
+        for(let p of Object.getOwnPropertyNames(current.object)){
+          var property = Object.getOwnPropertyDescriptor(current.object, p);
+          const path = current.path;
+          const source = indexMap.get(
+            path.join('.')
+          );
+
+          if(
+            property.hasOwnProperty('value') && ((property.value !== null &&
+              typeof property.value === 'object') || typeof property.value === 'object'
+            ) && property.value instanceof Object
+          ){
+            quene.push({
+              path: path.concat([p]),
+              object: property.value
+            });
+
+            data.push({
+              source: source,
+              id: data.length+1,
+              label: path.concat([p]).join('.')
+            });
+
+            if(!indexMap.has(path.concat([p]).join('.'))){
+              indexMap.set(path.concat([p]).join('.'), indexMap.size+1)
+            }
+
+          }
+          if(property.hasOwnProperty('get') && typeof property.get === 'function'){
+            quene.push({
+              path: current.path.concat([p]),
+              object: property.get
+            })
+
+            data.push({
+              source: source,
+              id: data.length+1,
+              label: path.concat([p, 'get']).join('.')
+            });
+
+            if(!indexMap.has(path.concat([p, 'get']).join('.'))){
+              indexMap.set(path.concat([p, 'get']).join('.'), indexMap.size+1)
+            }
+          }
+          if(property.hasOwnProperty('set') && typeof property.set === 'function'){
+            quene.push({
+              path: current.path.concat([p, 'set']),
+              object: property.set
+            })
+
+            data.push({
+              source: source,
+              id: data.length+1,
+              label: path.concat([p, 'set']).join('.')
+            });
+
+            if(!indexMap.has(path.concat([p, 'set']).join('.'))){
+              indexMap.set(path.concat([p, 'set']).join('.'), indexMap.size+1)
+            }
+          }
+
+        }
+      }
+    }
+    // console.log(set, data, indexMap)
+      const nodes = [{
+        id: '0',
+        label: 'null'
+      }];
+      const edges = [];
+      data.map((i) => {
+        nodes.push({
+          id: i.id+'',
+          label: i.label
+        });
+        edges.push({
+          source: i.source+'',
+          target: i.id+''
+        })
+      })
+
+      const graph = new G6.Graph({
+        container: 'mountNode',
+        width: 2000,
+        height: 1500,
+        defaultNode: {
+          shape: 'node',
+          labelCfg: {
+            style: {
+              fill: '#000000A6',
+              fontSize: 10
+            }
+          },
+          style: {
+            stroke: '#72CC4A',
+            width: 150
+          }
+        },
+        layout: {
+          type: 'radial',
+          center: [ 900, 700 ],     // 可选，默认为图的中心
+          linkDistance: 300,         // 可选，边长
+          maxIteration: 1000,       // 可选
+          focusNode: 'node11',      // 可选
+          unitRadius: 100,          // 可选
+          preventOverlap: true,     // 可选，必须配合 nodeSize
+          nodeSize: 100,             // 可选
+          strictRadial: false,      // 可选
+          workerEnabled: true       // 可选，开启 web-worker
+        },
+        modes: {
+          default: ['drag-canvas', 'drag-node'],
+        },
+        animate: true,
+      })
+      // 读取数据
+      graph.data({nodes, edges});
+      // 渲染图
+      graph.render();
+    </script>
+  </body>
+</html>
